@@ -96,7 +96,7 @@ typedef void(^YGPCacheDataCacheImageBlock)(UIImage *image,NSString *key);
 - (float)diskCacheSize;
 - (NSUInteger)diskCacheFileCount;
 
-//对象转成NSData
+//data to JSON...
 + (NSData*)dataWithJSONObject:(id)object;
 + (id)JSONObjectWithData:(NSData*)data;
 + (NSData*)dataWithImageObject:(UIImage*)image;
