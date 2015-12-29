@@ -8,7 +8,7 @@
 @implementation UIImageView (YGPWebImage)
 
 - (void)YGP_setImageWithURL:(NSURL *)url{
-
+    
     [self YGP_setImageWithURL:url
              placeholderImage:nil
                cacheOperation:YGPImageCacheMemory
@@ -17,7 +17,7 @@
 
 - (void)YGP_setImageWithURL:(NSURL *)url
            placeholderImage:(UIImage *)placeholder{
-
+    
     [self YGP_setImageWithURL:url
              placeholderImage:placeholder
                cacheOperation:YGPImageCacheMemory
@@ -28,7 +28,7 @@
 - (void)YGP_setImageWithURL:(NSURL *)url
            placeholderImage:(UIImage *)placeholder
                    complete:(YGPWebImageDownLoadComplete)complete {
-
+    
     [self YGP_setImageWithURL:url
              placeholderImage:placeholder
                cacheOperation:YGPImageCacheMemory
@@ -51,10 +51,10 @@
     }
     
     __weak typeof(self) wSelf = self;
-
+    
     [[YGPCache sharedManager]dataFromDiskForKey:[url absoluteString] block:^(NSData *data, NSString *key) {
         __strong typeof(wSelf) sSelf = wSelf;
-
+        
         if (data) {
             
             dispatch_async(dispatch_get_main_queue(), ^{
@@ -68,8 +68,8 @@
             
         }else{
             
-         [[YGPHTTPRequest sharedRequest] downLoadImageURL:url progress:progres complete:^(NSURL *location, NSURL *downLoadURL ,NSError *error) {
-             
+            [[YGPHTTPRequest sharedRequest] downLoadImageURL:url progress:progres complete:^(NSURL *location, NSURL *downLoadURL ,NSError *error) {
+                
                 __strong typeof(wSelf) sSelf = wSelf;
                 
                 if (wSelf) {
@@ -90,7 +90,7 @@
                         case YGPImageCacheMemory:
                             
                             [[YGPCache sharedManager] setDataToMemoryWithData:data forKey:[[self YGP_imageURL] absoluteString]];
-                        
+                            
                             break;
                         case YGPImageCacheDisk:
                             
@@ -102,13 +102,12 @@
                     }
                 }
             }];
-            [self cancel];
         }
     }];
 }
 
 - (void)cancel{
-
+    
     [[YGPHTTPRequest sharedRequest]cancelRequest:[self YGP_imageURL]];
     
 }
