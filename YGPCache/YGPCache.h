@@ -49,10 +49,10 @@ typedef void(^YGPCacheDataCacheImageBlock)(UIImage *image,NSString *key);
  *  @param key
  */
 - (void)setImageToDiskWithImage:(UIImage*)image
-                       forKey:(NSString*)key;
+                         forKey:(NSString*)key;
 
 - (void)setImageToMemoryWithImage:(UIImage*)image
-                         forKey:(NSString*)key;
+                           forKey:(NSString*)key;
 /**
  *  get stored data form Disk
  *
@@ -75,7 +75,7 @@ typedef void(^YGPCacheDataCacheImageBlock)(UIImage *image,NSString *key);
                       block:(YGPCacheImageCacheObjectBlock)block;
 
 - (void)imageFromMemoryForKey:(NSString*)key
-                       block:(YGPCacheImageCacheObjectBlock)block;
+                        block:(YGPCacheImageCacheObjectBlock)block;
 /**
  *  remove data from disk
  *
@@ -96,10 +96,14 @@ typedef void(^YGPCacheDataCacheImageBlock)(UIImage *image,NSString *key);
 - (float)diskCacheSize;
 - (NSUInteger)diskCacheFileCount;
 
-//data to JSON...
+//对象转成NSData
 + (NSData*)dataWithJSONObject:(id)object;
 + (id)JSONObjectWithData:(NSData*)data;
+
 + (NSData*)dataWithImageObject:(UIImage*)image;
+
++ (NSData*)dataWithString:(NSString*)string;
++ (NSString*)stringWithData:(NSData*)data;
 
 @end
 

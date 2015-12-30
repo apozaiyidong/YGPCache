@@ -52,22 +52,22 @@ static inline NSString *unescapedString(NSString *key){
 
 #pragma mark init
 + (instancetype)sharedManager{
-
+    
     static YGPCache *_ygp_YGPCache = nil;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
         _ygp_YGPCache = [[YGPCache alloc]init];
     });
-
+    
     return _ygp_YGPCache;
 }
 
 - (instancetype)init{
-   return [self initWithCacheDirectory:YGPCacheDirectoryName];
+    return [self initWithCacheDirectory:YGPCacheDirectoryName];
 }
 
 - (instancetype)initWithCacheDirectory:(NSString*)cacheDirectory{
-
+    
     self = [super init];
     
     if (self) {
@@ -102,12 +102,12 @@ static inline NSString *unescapedString(NSString *key){
 
 
 - (NSString*)ygp_CacheDirectory:(NSString*)cacheDirectory{
-
+    
     NSArray  *paths = NSSearchPathForDirectoriesInDomains(NSCachesDirectory,NSUserDomainMask,YES);
     NSString *docDir = [paths objectAtIndex:0];
     NSString *ygp_cachePath = [docDir stringByAppendingPathComponent:cacheDirectory];
     
-//    NSLog(@"path %@",ygp_cachePath);
+    //    NSLog(@"path %@",ygp_cachePath);
     
     self.fileManager = [[NSFileManager alloc]init];
     BOOL isDir       = false;
@@ -138,8 +138,8 @@ static inline NSString *unescapedString(NSString *key){
 - (void)setDataToDiskWithData:(NSData*)data
                        forKey:(NSString*)key{
     
-   if (![key length] ||![data length]) {return;}
-
+    if (![key length] ||![data length]) {return;}
+    
     dispatch_async(self.diskIoQueue, ^{
         
         BOOL      isCacheSuccess;
@@ -165,13 +165,13 @@ static inline NSString *unescapedString(NSString *key){
     NSString *aKey = escapedString(key);
     
     dispatch_async(self.diskIoQueue, ^{
-    
+        
         NSData *cacheData = nil;
         
         // Memory cache data
         // 查看内存中
         cacheData = [_memoryCache objectForKey:aKey];
-       
+        
         if (cacheData) {
             if (block){
                 dispatch_async(dispatch_get_main_queue(), ^{
@@ -190,11 +190,11 @@ static inline NSString *unescapedString(NSString *key){
             if (cacheData) {
                 [_memoryCache setData:cacheData forKey:aKey];
             }
-          
+            
             if (block){
                 dispatch_async(dispatch_get_main_queue(), ^{
                     block(cacheData,unescapedString(key));
-                   
+                    
                 });
             }
         }
@@ -214,7 +214,7 @@ static inline NSString *unescapedString(NSString *key){
 }
 
 - (void)removeDiskAllData{
-
+    
     dispatch_async(self.diskIoQueue, ^{
         
         NSDirectoryEnumerator * fileEnumerator = [_fileManager enumeratorAtPath:_cacheDiskPath];
@@ -243,12 +243,12 @@ static inline NSString *unescapedString(NSString *key){
 #pragma mark Memory add get remove
 - (void)setDataToMemoryWithData:(NSData*)data
                          forKey:(NSString*)key{
-
+    
     [self.memoryCache setData:data forKey:escapedString(key)];
 }
 
 - (void)dataFromMemoryForKey:(NSString*)key
-                         block:(YGPCacheDataCacheObjectBlock)block{
+                       block:(YGPCacheDataCacheObjectBlock)block{
     
     if (![key length]) {
         if (block) {
@@ -266,7 +266,7 @@ static inline NSString *unescapedString(NSString *key){
                 });
             }
         }];
-
+        
     });
 }
 
@@ -282,7 +282,7 @@ static inline NSString *unescapedString(NSString *key){
     return [_memoryCache containsDataForKey:escapedString(key)];
 }
 
-#pragma image 
+#pragma image
 
 - (void)setImageToMemoryWithImage:(UIImage *)image forKey:(NSString *)key{
     [self setDataToMemoryWithData:[YGPCache dataWithImageObject:image] forKey:key];
@@ -306,12 +306,12 @@ static inline NSString *unescapedString(NSString *key){
             block([UIImage imageWithData:data],key);
         }
     }];
-
+    
 }
-#pragma mark 
+#pragma mark
 
 - (float)diskCacheSize{
-
+    
     __block float folderSize = 0;
     
     if (![_fileManager fileExistsAtPath:_cacheDiskPath])
@@ -325,7 +325,7 @@ static inline NSString *unescapedString(NSString *key){
             
             NSString *filePath = [_cacheDiskPath stringByAppendingPathComponent:fileName];
             folderSize += [[[NSFileManager defaultManager] attributesOfItemAtPath:filePath error:nil] fileSize];
-
+            
         }
     });
     
@@ -333,48 +333,23 @@ static inline NSString *unescapedString(NSString *key){
 }
 
 - (NSUInteger)diskCacheFileCount{
-
+    
     __block NSUInteger fileCount = 0;
-  
+    
     dispatch_sync(self.diskIoQueue, ^{
-  
+        
         NSDirectoryEnumerator *fileEnumerator = [_fileManager enumeratorAtPath:_cacheDiskPath];
         fileCount = [[fileEnumerator allObjects] count];
         
     });
     
-   return fileCount;
+    return fileCount;
 }
-+ (NSData*)dataWithJSONObject:(id)object{
-
-    
-    NSData *data = [NSJSONSerialization dataWithJSONObject:object
-                                                   options:NSJSONWritingPrettyPrinted
-                                                     error:nil];
-    
-    return data;
-}
-
-+ (id)JSONObjectWithData:(NSData*)data{
-    id JSONObj = [NSJSONSerialization JSONObjectWithData:data
-                                                 options:kNilOptions
-                                                   error:nil];
-  
-    return JSONObj;
-}
-+ (NSData*)dataWithImageObject:(UIImage*)image{
-
-    NSData *data = nil;
-    data = UIImageJPEGRepresentation(image, [@(1.0) floatValue]);
-//        data = UIImagePNGRepresentation(image);
-    return data;
-}
-
 
 #pragma mark TimeoutList
 
 - (NSMutableDictionary*)getTimeoutList{
-
+    
     __block NSData *cacheListData  = nil;
     NSMutableDictionary *cacheList = nil;
     NSString * filePath = [self ygp_filePathWithKey:YGPCacheAttributeListName];
@@ -386,8 +361,8 @@ static inline NSString *unescapedString(NSString *key){
         cacheList = [[NSMutableDictionary alloc]init];
     }else{
         cacheList = [[NSJSONSerialization JSONObjectWithData:cacheListData
-                                                    options:kNilOptions
-                                                      error:nil] mutableCopy];
+                                                     options:kNilOptions
+                                                       error:nil] mutableCopy];
     }
     
     return cacheList;
@@ -395,22 +370,22 @@ static inline NSString *unescapedString(NSString *key){
 }
 
 - (void)addTimeoutListForKey:(NSString*)key{
-
+    
     //每次添加缓存数据的将在缓存列表中添加一个时间戳
     
     NSTimeInterval now = [[NSDate date] timeIntervalSinceReferenceDate];
-
+    
     NSMutableDictionary *cacheList = [[NSMutableDictionary alloc]init];
     [cacheList addEntriesFromDictionary:[self getTimeoutList]];
     
     [cacheList setObject:[NSString stringWithFormat:@"%f",now] forKey:key];
     
     [self cacheTimeListForData:cacheList];
-
+    
 }
 
 - (void)clearTimeoutDiskFile{
-
+    
     
     NSTimeInterval now             = [[NSDate date] timeIntervalSinceReferenceDate];
     NSMutableArray *timeoutKeys    = [[NSMutableArray alloc]init];
@@ -425,7 +400,7 @@ static inline NSString *unescapedString(NSString *key){
             [[NSFileManager defaultManager] removeItemAtPath:[self ygp_filePathWithKey:key]
                                                        error:nil];
             [timeoutKeys addObject:key];
-           
+            
         }
     }
     
@@ -435,12 +410,46 @@ static inline NSString *unescapedString(NSString *key){
 }
 
 - (void)cacheTimeListForData:(NSMutableDictionary*)dict{
-
+    
     NSData *cacheListData = [NSJSONSerialization dataWithJSONObject:dict
                                                             options:NSJSONWritingPrettyPrinted
                                                               error:nil];
     
     [cacheListData writeToFile:[self ygp_filePathWithKey:YGPCacheAttributeListName] atomically:YES];
+}
+
+#pragma mark
++ (NSData*)dataWithJSONObject:(id)object{
+    
+    
+    NSData *data = [NSJSONSerialization dataWithJSONObject:object
+                                                   options:NSJSONWritingPrettyPrinted
+                                                     error:nil];
+    
+    return data;
+}
+
++ (id)JSONObjectWithData:(NSData*)data{
+    id JSONObj = [NSJSONSerialization JSONObjectWithData:data
+                                                 options:kNilOptions
+                                                   error:nil];
+    
+    return JSONObj;
+}
++ (NSData*)dataWithImageObject:(UIImage*)image{
+    
+    NSData *data = nil;
+    data = UIImageJPEGRepresentation(image, [@(1.0) floatValue]);
+    //        data = UIImagePNGRepresentation(image);
+    return data;
+}
+
++ (NSString*)stringWithData:(NSData *)data{
+    return [[NSString alloc]initWithData:data encoding:NSUTF8StringEncoding];
+}
+
++ (NSData*)dataWithString:(NSString *)string{
+    return [string dataUsingEncoding:NSUTF8StringEncoding];
 }
 
 @end
@@ -455,7 +464,7 @@ static inline NSString *unescapedString(NSString *key){
 @implementation YGPMemoryCacheNode
 
 - (instancetype)initWithKey:(NSString*)key forAccessedCount:(NSUInteger)AccessedCount{
-
+    
     self = [super init];
     
     if (self) {
@@ -470,10 +479,10 @@ static inline NSString *unescapedString(NSString *key){
 @end
 
 static inline YGPMemoryCacheNode *memoryCacheNode(NSString *key,NSUInteger accessedCount){
-
+    
     YGPMemoryCacheNode * cacheNode = [[YGPMemoryCacheNode alloc]initWithKey:key
                                                            forAccessedCount:accessedCount];
-
+    
     return cacheNode;
 }
 
@@ -521,12 +530,12 @@ static inline YGPMemoryCacheNode *memoryCacheNode(NSString *key,NSUInteger acces
 }
 
 - (void)setData:(NSData*)data forKey:(NSString*)key{
-
+    
     if (![key length] ||![data length]) {return;}
-
+    
     dispatch_async(_memoryIoQueue, ^{
         
-       [_cacheData setObject:data forKey:key];
+        [_cacheData setObject:data forKey:key];
         
     });
     
@@ -554,7 +563,7 @@ static inline YGPMemoryCacheNode *memoryCacheNode(NSString *key,NSUInteger acces
 - (void)removeAllData{
     
     dispatch_async(_memoryIoQueue, ^{
-    
+        
         [_cacheData            removeAllObjects];
         [_recentlyAccessedKeys removeAllObjects];
         [_recentlyNode         removeAllObjects];
@@ -562,7 +571,7 @@ static inline YGPMemoryCacheNode *memoryCacheNode(NSString *key,NSUInteger acces
 }
 
 - (void)removeDataForKey:(NSString*)key{
-
+    
     if (![key length]) {return;}
     
     dispatch_async(_memoryIoQueue, ^{
@@ -576,7 +585,7 @@ static inline YGPMemoryCacheNode *memoryCacheNode(NSString *key,NSUInteger acces
 }
 
 - (BOOL)containsDataForKey:(NSString*)key{
-
+    
     __block BOOL isContains = NO;
     
     dispatch_sync(_memoryIoQueue, ^{
@@ -589,7 +598,7 @@ static inline YGPMemoryCacheNode *memoryCacheNode(NSString *key,NSUInteger acces
 }
 
 - (void)timeoutObjForKey:(NSString*)key{
-
+    
     /*
      
      获取一个缓存数据，就将其移动到队列的最顶端，队列内越后的数据就是调用得最少次的
@@ -627,7 +636,7 @@ static inline YGPMemoryCacheNode *memoryCacheNode(NSString *key,NSUInteger acces
         [_cacheData    removeObjectForKey:lastObjKey];
         [_recentlyNode removeObjectForKey:lastObjKey];
     }
-
+    
     //remove timeout data
     NSTimeInterval now     = [[NSDate date] timeIntervalSinceReferenceDate];
     NSTimeInterval timeout = 60 * 5;
@@ -647,7 +656,7 @@ static inline YGPMemoryCacheNode *memoryCacheNode(NSString *key,NSUInteger acces
             }
         }];
     }
-
+    
     
     _recentlyHandleTime = now;
 }
