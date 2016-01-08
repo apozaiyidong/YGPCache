@@ -115,12 +115,10 @@ static inline NSString *unescapedString(NSString *key){
 }
 
 - (void)setObjectToMemory:(id<NSCopying>)object forKey:(NSString *)aKey{
-
-    NSData *Data = [NSKeyedArchiver archivedDataWithRootObject:object];
-    [self setDataToMemoryWithData:Data forKey:aKey];
+    [_cacheMemory setObject:object forKey:aKey];
 }
 
-- (void)objectForKey:(NSString *)key block:(YGPCacheObjectBlock)block{
+- (void)objectFormDiskForKey:(NSString *)key block:(YGPCacheObjectBlock)block{
     
     [_cacheDisk dataForKey:key block:^(NSData *data, NSString *key) {
         
@@ -131,7 +129,14 @@ static inline NSString *unescapedString(NSString *key){
         }
     }];
 }
-
+- (void)objectFormMemoryForKey:(NSString*)key block:(YGPCacheObjectBlock)block{
+  
+   id obj = [_cacheMemory objectForKey:key];
+    
+    if (block) {
+        block(obj,key);
+    }
+}
 #pragma mark Remove
 
 - (void)removeDiskCacheDataForKey:(NSString *)key{

@@ -118,7 +118,7 @@ static NSString   *const YGPCacheDirectoryName          = @"YLCache";
         
         // Memory cache data
         // 查看内存中
-        cacheData = [_memoryCache objectForKey:key];
+        cacheData = [_memoryCache dataForKey:key];
         
         if (cacheData) {
             if (block){

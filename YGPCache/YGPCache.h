@@ -41,7 +41,8 @@ typedef void(^YGPCacheObjectBlock)(id object,NSString *key);
 - (void)setObjectToDisk:(id<NSCopying>)object forKey:(NSString*)aKey;
 - (void)setObjectToMemory:(id<NSCopying>)object forKey:(NSString*)aKey;
 
-- (void)objectForKey:(NSString*)key block:(YGPCacheObjectBlock)block;
+- (void)objectFormDiskForKey:(NSString*)key block:(YGPCacheObjectBlock)block;
+- (void)objectFormMemoryForKey:(NSString*)key block:(YGPCacheObjectBlock)block;
 
 #pragma mark Remove
 - (void)removeDiskCacheDataForKey:(NSString*)key;

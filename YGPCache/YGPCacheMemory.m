@@ -99,22 +99,29 @@ static char       *const YGPCacheMemoryIOQueue          = "YGPCacheMemoryIOQueue
 }
 
 - (void)setData:(NSData*)data forKey:(NSString*)key{
-    
-    if (![key length] ||![data length]) {return;}
-    
-    dispatch_async(_memoryIoQueue, ^{
-        
-        [_cacheData setObject:data forKey:key];
-        
-    });
-    
+    [self setObject:data forKey:key];
 }
 
-- (NSData*)objectForKey:(NSString*)key{
+- (NSData*)dataForKey:(NSString*)key{
     
+   return [self objectForKey:key];
+}
+
+- (void)setObject:(id)object forKey:(NSString *)key{
+    
+    if (![key length] ||!object) {return;}
+    
+    dispatch_async(_memoryIoQueue, ^{
+        [_cacheData setObject:object forKey:key];
+    });
+
+}
+
+- (id)objectForKey:(NSString *)key{
+
     if (![key length]) {return nil;}
     
-    __block NSData *cacheData = nil;
+    __block id cacheData = nil;
     
     dispatch_sync(_memoryIoQueue, ^{
         
