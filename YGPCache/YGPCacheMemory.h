@@ -3,21 +3,22 @@
 #import <Foundation/Foundation.h>
 
 @interface YGPCacheMemory : NSObject
-@property (nonatomic,assign)NSUInteger memoryCacheCountLimit;
+@property (nonatomic,assign)NSUInteger memoryCacheCostLimit;
 
 + (instancetype)sharedMemory;
 
-- (void)setData:(NSData*)data forKey:(NSString*)key;
+- (void)setObject:(id)object forKey:(NSString*)key;
+- (void)setObject:(id)object forKey:(NSString*)key isEvitable:(BOOL)isEvitable costLimit:(NSUInteger)costLimit;
 
-- (NSData*)dataForKey:(NSString*)key;
+- (id)objectForKey:(NSString*)key;
 
 - (void)removeDataForKey:(NSString*)key;
-
 - (void)removeAllData;
 
 - (BOOL)containsDataForKey:(NSString*)key;
 
-- (void)setObject:(id)object forKey:(NSString*)key;
-- (id)objectForKey:(NSString*)key;
+
+
+
 
 @end

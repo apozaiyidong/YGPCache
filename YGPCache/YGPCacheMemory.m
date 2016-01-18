@@ -6,49 +6,27 @@
 #import <UIKit/UIKit.h>
 
 #pragma mark memory cache
-@interface YGPMemoryCacheNode :NSObject
-@property (nonatomic,copy)   NSString       *key;
-@property (nonatomic,assign) NSTimeInterval accessedTime;
-@property (nonatomic,assign) NSUInteger     accessedCount;
-@end
+@interface YGPMemoryCacheNode : NSObject
+{
+    @public
+    NSString       *_key;
+    NSUInteger     _accessedCount;//object access count
+    BOOL           _isEvitable;
+}
 
+@end
 @implementation YGPMemoryCacheNode
 
-- (instancetype)initWithKey:(NSString*)key forAccessedCount:(NSUInteger)AccessedCount{
-    
-    self = [super init];
-    
-    if (self) {
-        _key               = [key copy];
-        _accessedCount     = AccessedCount;
-        NSTimeInterval now = [[NSDate date] timeIntervalSinceReferenceDate];
-        _accessedTime      = now;
-        
-    }
-    return self;
-}
 @end
-
-static inline YGPMemoryCacheNode *memoryCacheNode(NSString *key,NSUInteger accessedCount){
-    
-    YGPMemoryCacheNode * cacheNode = [[YGPMemoryCacheNode alloc]initWithKey:key
-                                                           forAccessedCount:accessedCount];
-    
-    return cacheNode;
-}
-
-
 static NSUInteger  const YGPCacheCacheMemoryObjLimit    = 35; //max count
 static NSString   *const YGPCacheAttributeListName      = @"YGPCacheAttributeList";
 static char       *const YGPCacheMemoryIOQueue          = "YGPCacheMemoryIOQueue";
 
 @interface YGPCacheMemory ()
 {
-    NSMutableDictionary *_cacheData;
-    NSMutableArray      *_recentlyAccessedKeys;
-    NSMutableDictionary *_recentlyNode;
-    NSTimeInterval       _recentlyHandleTime;
-    NSUInteger           _minAccessedCount;
+    NSMutableDictionary *_objects;
+    NSMutableDictionary *_cacheNode;
+    NSUInteger           _totalAccessed;
 }
 
 @property (nonatomic,strong) dispatch_queue_t memoryIoQueue;
@@ -72,12 +50,11 @@ static char       *const YGPCacheMemoryIOQueue          = "YGPCacheMemoryIOQueue
     
     if (self) {
         
-        _cacheData             = [[NSMutableDictionary alloc]init];
-        _recentlyNode          = [[NSMutableDictionary alloc]init];
-        _recentlyAccessedKeys  = [[NSMutableArray alloc]init];
-        _recentlyHandleTime    = [[NSDate date] timeIntervalSinceReferenceDate];
-        _minAccessedCount      = 1;
-        _memoryCacheCountLimit = YGPCacheCacheMemoryObjLimit;
+        _objects               = [[NSMutableDictionary alloc]init];
+        _cacheNode             = [[NSMutableDictionary alloc]init];
+        _totalAccessed         = 0;
+        
+        _memoryCacheCostLimit = YGPCacheCacheMemoryObjLimit;
         _memoryIoQueue         = dispatch_queue_create(YGPCacheMemoryIOQueue, DISPATCH_QUEUE_SERIAL);
         
         [[NSNotificationCenter defaultCenter]addObserverForName:UIApplicationDidReceiveMemoryWarningNotification object:nil queue:[NSOperationQueue mainQueue] usingBlock:^(NSNotification * __unused note) {
@@ -98,21 +75,41 @@ static char       *const YGPCacheMemoryIOQueue          = "YGPCacheMemoryIOQueue
     return self;
 }
 
-- (void)setData:(NSData*)data forKey:(NSString*)key{
-    [self setObject:data forKey:key];
-}
-
-- (NSData*)dataForKey:(NSString*)key{
-    
-   return [self objectForKey:key];
+- (void)setMemoryCacheCostLimit:(NSUInteger)memoryCacheCostLimit{
+    _memoryCacheCostLimit = memoryCacheCostLimit;
 }
 
 - (void)setObject:(id)object forKey:(NSString *)key{
     
+    [self setObject:object forKey:key isEvitable:NO costLimit:_memoryCacheCostLimit];
+    
+}
+
+- (void)setObject:(id)object forKey:(NSString *)key isEvitable:(BOOL)isEvitable costLimit:(NSUInteger)costLimit{
+    
     if (![key length] ||!object) {return;}
     
     dispatch_async(_memoryIoQueue, ^{
-        [_cacheData setObject:object forKey:key];
+        
+        YGPMemoryCacheNode *oldCacheNode = _objects[key];
+        YGPMemoryCacheNode *newCacheNode = nil;
+        
+        if (oldCacheNode) {
+            [_objects   removeObjectForKey:key];
+            [_cacheNode removeObjectForKey:key];
+            [self setTotalAccessed:key];
+        }
+        
+        [self cacheObjectManagerWithcostLimit:costLimit];
+
+        newCacheNode = [YGPMemoryCacheNode new];
+        newCacheNode->_key = key;
+        newCacheNode->_accessedCount ++;
+        newCacheNode->_isEvitable = isEvitable;
+        
+        [_objects   setObject:object       forKey:key];
+        [_cacheNode setObject:newCacheNode forKey:key];
+        
     });
 
 }
@@ -125,11 +122,13 @@ static char       *const YGPCacheMemoryIOQueue          = "YGPCacheMemoryIOQueue
     
     dispatch_sync(_memoryIoQueue, ^{
         
-        cacheData = _cacheData[key];
+        cacheData = _objects[key];
         
-        if (cacheData) {
-            [self timeoutObjForKey:key];
-        }
+        YGPMemoryCacheNode *cacheNodeObject = _cacheNode[key];
+        cacheNodeObject->_accessedCount ++;
+        [_cacheNode removeObjectForKey:key];
+        [_cacheNode setObject:cacheNodeObject forKey:key];
+        _totalAccessed ++;
         
     });
     
@@ -140,10 +139,12 @@ static char       *const YGPCacheMemoryIOQueue          = "YGPCacheMemoryIOQueue
     
     dispatch_async(_memoryIoQueue, ^{
         
-        [_cacheData            removeAllObjects];
-        [_recentlyAccessedKeys removeAllObjects];
-        [_recentlyNode         removeAllObjects];
+        [_objects      removeAllObjects];
+        [_cacheNode    removeAllObjects];
+        _totalAccessed = 0;
+        
     });
+    
 }
 
 - (void)removeDataForKey:(NSString*)key{
@@ -152,11 +153,11 @@ static char       *const YGPCacheMemoryIOQueue          = "YGPCacheMemoryIOQueue
     
     dispatch_async(_memoryIoQueue, ^{
         
-        [_cacheData removeObjectForKey:key];
-        if ([_recentlyAccessedKeys containsObject:key]) {
-            [_recentlyAccessedKeys removeObject:key];
-            [_recentlyNode         removeObjectForKey:key];
-        }
+        [self setTotalAccessed:key];
+        
+        [_objects   removeObjectForKey:key];
+        [_cacheNode removeObjectForKey:key];
+        
     });
 }
 
@@ -165,76 +166,47 @@ static char       *const YGPCacheMemoryIOQueue          = "YGPCacheMemoryIOQueue
     __block BOOL isContains = NO;
     
     dispatch_sync(_memoryIoQueue, ^{
-        if (_cacheData[key]) {
-            isContains = YES;
-        }
+        
+        if (_objects[key]) {isContains = YES;}
+        
     });
     
     return isContains;
 }
 
-- (void)timeoutObjForKey:(NSString*)key{
+- (void)setTotalAccessed:(NSString*)key{
     
-    /*
-     
-     获取一个缓存数据，就将其移动到队列的最顶端，队列内越后的数据就是调用得最少次的
-     设置一个内存LIMIT 最大值，当缓存数据超过了最大值。每次有新的数据进入列队，就会讲
-     列队的最后一个缓存数据移除掉。
-     
-     每个缓存数据都会组建成一个结构体 里面包含 （访问次数 ，访问时间）
-     每隔3分钟的时候就会去调用 队列  将访问次数最小和访问时间离现在最久的数据将其出列
-     
-     */
-    
-    YGPMemoryCacheNode *node = nil;
-    
-    if ([_recentlyAccessedKeys containsObject:key]) {
-        [_recentlyAccessedKeys removeObject:key];
-        
-        node = _recentlyNode[key];
-        [_recentlyNode removeObjectForKey:key];
+    YGPMemoryCacheNode *cacheNode = _cacheNode[key];
+    if (cacheNode) {
+        _totalAccessed -=cacheNode->_accessedCount;
     }
+}
+
+/*
+ 
+ */
+- (void)cacheObjectManagerWithcostLimit:(NSUInteger)costLimit{
     
-    [_recentlyAccessedKeys insertObject:key atIndex:0];
-    
-    //增加内存访问的计时和时间
-    NSUInteger accessedCount = 1;
-    if (node)accessedCount   = node.accessedCount+1;
-    
-    //获取最小的访问数
-    if (accessedCount < _minAccessedCount) _minAccessedCount = accessedCount;
-    
-    [_recentlyNode setObject:memoryCacheNode(key, accessedCount) forKey:key];
+    NSUInteger count = [_objects count];
     
     //移除近期不访问
-    if (_recentlyAccessedKeys.count >= YGPCacheCacheMemoryObjLimit) {
-        NSString *lastObjKey = [_recentlyAccessedKeys lastObject];
-        [_cacheData    removeObjectForKey:lastObjKey];
-        [_recentlyNode removeObjectForKey:lastObjKey];
-    }
-    
-    //remove timeout data
-    NSTimeInterval now     = [[NSDate date] timeIntervalSinceReferenceDate];
-    NSTimeInterval timeout = 60 * 5;
-    
-    if ((now - _recentlyHandleTime) >= timeout) {
+    if (count >= costLimit) {
         
-        [_recentlyNode enumerateKeysAndObjectsUsingBlock:^(id  _Nonnull key, id  _Nonnull obj, BOOL * _Nonnull stop) {
+        NSUInteger averageAccessed = _totalAccessed / count + 1;
+
+        [_cacheNode enumerateKeysAndObjectsUsingBlock:^(id  _Nonnull key, id  _Nonnull obj, BOOL * _Nonnull stop) {
             
-            YGPMemoryCacheNode *node = (YGPMemoryCacheNode*)obj;
-            
-            if ((now - node.accessedTime) >= timeout && node.accessedCount <= _minAccessedCount) {
+            YGPMemoryCacheNode *cacheNode = obj;
+            if (cacheNode) {
                 
-                [_cacheData            removeObjectForKey:key];
-                [_recentlyNode         removeObjectForKey:key];
-                [_recentlyAccessedKeys removeObject:key];
-                
+                if (cacheNode->_accessedCount <= averageAccessed && !cacheNode->_isEvitable) {
+
+                    [_objects   removeObjectForKey:key];
+                    [_cacheNode removeObjectForKey:key];
+                }
             }
         }];
     }
-    
-    
-    _recentlyHandleTime = now;
 }
 
 @end

@@ -40,6 +40,7 @@ typedef void(^YGPCacheObjectBlock)(id object,NSString *key);
 
 - (void)setObjectToDisk:(id<NSCopying>)object forKey:(NSString*)aKey;
 - (void)setObjectToMemory:(id<NSCopying>)object forKey:(NSString*)aKey;
+- (void)setObjectToMemory:(id<NSCopying>)object forKey:(NSString*)aKey costLimit:(NSUInteger)costLimit;
 
 - (void)objectFormDiskForKey:(NSString*)key block:(YGPCacheObjectBlock)block;
 - (void)objectFormMemoryForKey:(NSString*)key block:(YGPCacheObjectBlock)block;

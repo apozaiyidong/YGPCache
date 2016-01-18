@@ -73,7 +73,7 @@ static inline NSString *unescapedString(NSString *key){
 }
 
 - (void)setDataToMemoryWithData:(NSData *)data forKey:(NSString *)key{
-    [_cacheMemory setData:data forKey:escapedString(key)];
+    [_cacheMemory setObject:data forKey:escapedString(key)];
 }
 
 - (void)dataForKey:(NSString *)key block:(YGPCacheDataCacheObjectBlock)block{
@@ -116,6 +116,10 @@ static inline NSString *unescapedString(NSString *key){
 
 - (void)setObjectToMemory:(id<NSCopying>)object forKey:(NSString *)aKey{
     [_cacheMemory setObject:object forKey:aKey];
+}
+
+- (void)setObjectToMemory:(id<NSCopying>)object forKey:(NSString*)aKey costLimit:(NSUInteger)costLimit{
+    [_cacheMemory setObject:object forKey:aKey isEvitable:NO costLimit:costLimit];
 }
 
 - (void)objectFormDiskForKey:(NSString *)key block:(YGPCacheObjectBlock)block{
